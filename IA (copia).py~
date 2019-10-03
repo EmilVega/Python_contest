@@ -1,0 +1,21 @@
+import random as rnd
+
+ANCHO = 15
+ALTO = 15
+MURO = 1
+HUECO = 0
+SALIDA = 2
+META = 3
+
+def CambiarDireccion(mapa,x,y,antiguaDireccion):
+	
+
+
+	
+#	direccion = rnd.randint(0,7)
+#	if (direccion==0): return(mapa,antiguaDireccion)
+#	elif (direccion==1): return(mapa,"N")
+#	elif (direccion==2 or direccion==3): return(mapa,"S")
+#	elif (direccion==4 or direccion==5): return(mapa,"E")
+#	else: return(mapa,"W")
+#def CambiarDireccion(mapa):

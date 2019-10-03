@@ -1,0 +1,229 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+#####################################
+#                                   #
+# Programado por José Luis Subirats #
+#                                   #
+# email: jolusuco@gmail.com         #
+#                                   #
+#####################################
+
+# Módulos
+import sys, pygame
+import random as rnd
+from IA import CambiarDireccion,ANCHO,ALTO,MURO,HUECO,SALIDA,META
+from pygame.locals import *
+
+# Constantes
+#ANCHO = 15
+#ALTO = 15
+WIDTH = ANCHO * 16
+HEIGHT = ALTO * 16 + 50
+#MURO = 1
+#HUECO = 0
+#SALIDA = 2
+#META = 3
+#PORCENTAJE_HUECO=50
+
+def salir(keys):
+	for eventos in pygame.event.get():
+		if eventos.type == QUIT:
+			sys.exit(0)
+		if keys[K_ESCAPE]:
+			sys.exit(0)
+#Fin def salir(keys)
+
+def texto(texto, posx, posy, color=(255, 255, 255), tam=20, backgr=None):
+	fuente = pygame.font.Font("images/DroidSans.ttf", tam)
+	salida = pygame.font.Font.render(fuente, texto, 1, color)
+	salida_rect = salida.get_rect()
+	salida_rect.centerx = posx
+	salida_rect.centery = posy
+	return salida, salida_rect
+#def texto(texto, posx, posy, color=(255, 255, 255), tam=20):
+
+def load_image(filename, transparent=False):
+        try: image = pygame.image.load(filename)
+        except pygame.error as message:
+                raise SystemExit(message)
+        image = image.convert()
+        if transparent:
+                color = image.get_at((0,0))
+                image.set_colorkey(color, RLEACCEL)
+        return image
+#Fin def load_image(filename, transparent=False):
+
+	
+def mover(direccion, mapa, x, y):
+	if direccion == "N" and mapa[y-1][x] != MURO: return (x,y-1)
+	elif direccion == "S" and mapa[y+1][x] != MURO: return (x,y+1)
+	elif direccion == "W" and mapa[y][x-1] != MURO: return (x-1,y)
+	elif direccion == "E" and mapa[y][x+1] != MURO: return (x+1,y)	
+	else: return (x,y)
+#fin def mover(PosicionNave, keys)
+
+def dibujar(screen,escenario,x,y,numero_filas, numero_columnas,bloque,rect_bloque,bola,rect_bola):
+	for f in range(numero_filas):
+			for c in range(numero_columnas):
+				if escenario[f][c] == MURO:
+					screen.blit(bloque, (rect_bloque.w*c, 50 + rect_bloque.h*f))
+	screen.blit(bola, (rect_bola.w*x, 50 + rect_bola.h*y))
+#fin dibujar(screen,escenario,PosicionNave)
+
+def inicializaJuego():
+	#Defino la pantalla de juego
+	screen = pygame.display.set_mode((WIDTH, HEIGHT))
+
+	#Le pongo titulo al formulario
+	pygame.display.set_caption("Laberinto!!!")
+
+	#Cargo la musica
+	pygame.mixer.music.load('music/Addicted.mp3')
+	pygame.mixer.music.play()
+
+	#Cargo el fondo de la pantalla
+	fondo = load_image('images/fondoB.jpg');
+
+	#Cargo la imagen del Bloque
+	bloque = load_image("images/bloque.png")
+	rect_bloque = bloque.get_rect()	
+
+	#Cargo la imagen de la bola
+	bola = load_image("images/bola.png")
+	rect_bola = bloque.get_rect()
+	
+	#Preparo el cronometro
+	clock = pygame.time.Clock()
+
+	#Genero el escenario de juego
+	numero_columnas = ANCHO
+	numero_filas = ALTO
+
+	PosicionX = 1
+	PosicionY = 1	
+	direccion = "N"
+	mapa = [[HUECO] * numero_columnas for i in range(numero_filas)]
+	for i in range(numero_filas):
+		for j in range(numero_columnas):
+			mapa[i][j] = MURO
+	
+	O=[]
+	for i in range(1,numero_filas-2,2):
+		for j in range(1,numero_columnas-2,2):
+			O.append((i,j))
+	
+	PActual = O[rnd.randint(0,len(O))]
+	(i,j) = PActual
+	mapa[i][j]=HUECO
+
+
+	Q=[]
+	if (i>1):Q.append((i-2,j))
+	if (i<numero_filas-2): Q.append((i+2,j))
+	if (j>1): Q.append((i,j-2))
+	if (j<numero_columnas-2): Q.append((i,j+2))
+
+	while (len(Q)>0):
+		(i,j) = Q.pop(rnd.randint(0,len(Q)-1))
+		if mapa[i][j]==MURO:
+			mapa[i][j]=HUECO
+
+			if i-2>=0 and mapa[i-2][j]==HUECO and mapa[i-1][j] == MURO: mapa[i-1][j] = HUECO			
+			elif j-2>=0 and mapa[i][j-2]==HUECO and mapa[i][j-1] == MURO: mapa[i][j-1] = HUECO
+			elif i+2<=numero_filas-2 and mapa[i+2][j]==HUECO and mapa[i+1][j] == MURO: mapa[i+1][j] = HUECO
+			elif j+2<=numero_columnas-2 and mapa[i][j+2]==HUECO and mapa[i][j+1] == MURO: mapa[i][j+1] = HUECO
+		
+			if (i>1 and mapa[i-2][j]==MURO): Q.append((i-2,j))
+			if (i<numero_filas-2 and mapa[i+2][j]==MURO): Q.append((i+2,j))
+			if (j>1 and mapa[i][j-2]==MURO): Q.append((i,j-2))
+			if (j<numero_columnas-2 and mapa[i][j+2]==MURO): Q.append((i,j+2))
+
+
+	for i in range(numero_filas):
+		for j in range(numero_columnas):
+			if i==0 or i==numero_filas-1 or j==0 or j==numero_columnas-1 : mapa[i][j] = MURO
+	mapa[1][1] = SALIDA	
+	mapa[numero_filas-2][numero_columnas-2] = META	
+	
+	time = 0.0
+
+	return (screen,fondo,(bloque,rect_bloque),(bola,rect_bola),clock,numero_columnas,numero_filas,PosicionX,PosicionY
+			,direccion,mapa,time)
+#Fin inicializaJuego()
+
+
+def nuevo_juego():
+	
+	(screen,fondo,(bloque,rect_bloque),(bola,rect_bola),clock,numero_columnas,numero_filas,PosicionX,PosicionY
+			,direccion,mapa,time) = inicializaJuego()
+
+	while True:
+		#Calculo cuantos segudos han pasado
+		time += clock.tick()/1000.0
+
+		#Veo que teclo pulso el usuario
+		keys = pygame.key.get_pressed()
+
+		#Compruebo si ha pulsado la tecla escape
+		salir(keys)
+
+		#Analizo si llegue a Meta
+		print(mapa[PosicionY][PosicionX])
+		if mapa[PosicionY][PosicionX] == META:
+			break
+				
+		#Actualizo mis puntos
+		tex_img, tex_rec = texto("Puntuacion: "+str(time), WIDTH/2 , 22, (255, 255, 255), 20, backgr =(0, 0, 0))
+		
+		#Calculo nueva direccion
+		(mapa,direccion) = CambiarDireccion(mapa, PosicionX, PosicionY,direccion)
+
+		#Me muevo
+		(PosicionX,PosicionY) = mover(direccion,mapa,PosicionX,PosicionY)
+
+		screen.blit(fondo, (0,0))
+		dibujar(screen,mapa,PosicionX,PosicionY,numero_filas, numero_columnas,bloque,rect_bloque,bola,rect_bola)
+		screen.blit(tex_img, tex_rec)
+		
+		pygame.display.flip()
+		pygame.time.delay(100)
+	
+	while True:
+		screen.blit(fondo, (0,0))
+		tex_img, tex_rec = texto("Puntuacion: "+str(time), WIDTH/2, HEIGHT/2-50, (255, 255, 255), 30)
+		tex_img2, tex_rec2 = texto("Pulsa espacio para salir", WIDTH/2, HEIGHT/2+50, (255, 255, 255), 30)
+		screen.blit(tex_img, tex_rec)
+		screen.blit(tex_img2, tex_rec2)
+		
+		#Veo que teclo pulso el usuario
+		keys = pygame.key.get_pressed()
+
+		#Compruebo si ha pulsado la tecla escape
+		salir(keys)
+
+		if keys[K_SPACE]: break
+
+		pygame.display.flip()
+		pygame.time.delay(100)
+
+	
+	pygame.mixer.music.stop()
+#def nuevo_juego(screen):
+
+#def CambiarDireccion(mapa,x,y,antiguaDireccion):
+#	direccion = rnd.randint(0,7)
+#	mapa[y][x] = 0.5
+#	if (direccion==0): return(mapa,antiguaDireccion)
+#	elif (direccion==1): return(mapa,"N")
+#	elif (direccion==2 or direccion==3): return(mapa,"S")
+#	elif (direccion==4 or direccion==5): return(mapa,"E")
+#	else: return(mapa,"W")
+##def CambiarDireccion(mapa):
+
+
+
+
+if __name__ == '__main__':
+	pygame.init()
+	nuevo_juego()
